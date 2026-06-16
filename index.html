@@ -978,47 +978,27 @@ const loadingMessages = [
 
 function buildPrompt(d) {
   return [
-    "Generate a recruitment skill matrix and talent intelligence kit as a compact JSON object.",
-    "Return ONLY the raw JSON. No markdown fences, no backticks, no explanation, no text before or after.",
+    "Generate a recruitment skill matrix as JSON. Return ONLY raw JSON, nothing else.",
     "",
-    "Required JSON structure:",
-    "- roleTitle: string",
-    "- summary: string (2 sentences max)",
-    "- mustHaveSkills: array of exactly 6 objects, each with: skill (string), category (one of Technical/Domain/Leadership/Soft Skill/Process), proficiencyRequired (integer 1 to 5), weight (one of High/Medium/Low), why (string max 20 words)",
-    "- niceToHaveSkills: array of exactly 3 objects, same shape as mustHaveSkills",
-    "- redFlags: array of exactly 4 strings, each max 20 words",
-    "- talentInsights: object with:",
-    "    booleanStrings (array of exactly 4 objects, each with: platform (one of LinkedIn/GitHub/Twitter/Google X-Ray), query (ready-to-use boolean search string))",
-    "    talentPools (array of exactly 5 strings — specific communities, slack groups, discords, subreddits, newsletters, or online spaces where this talent hangs out)",
-    "    targetCompanies (array of exactly 8 strings — specific real company names to poach from, with a 1-sentence reason each, formatted as 'CompanyName: reason')",
-    "    conferenceAndEvents (array of exactly 4 strings — specific conferences, meetups, or events where this talent appears)",
-    "    hiringSignals (array of exactly 4 strings — signals that indicate someone may be open to move, e.g. recent layoffs, funding news, role changes)",
-    "- scorecard: array of exactly 5 objects, each with: criterion (string), weight (one of High/Medium/Low), description (string max 15 words), scaleOne (string max 15 words describing a score of 1), scaleFive (string max 15 words describing a score of 5)",
-    "- recruiterScreenQuestions: array of exactly 6 objects, each with: question (string — what the recruiter asks on the phone screen), intent (string max 12 words — what this question is actually trying to surface), greenFlag (string max 15 words — what a strong answer sounds like), redFlag (string max 15 words — what a weak answer sounds like)",
-    "- interviewQuestions: array of exactly 5 objects, each with: skill (string), type (one of Behavioral/Situational/Technical), question (string), probeFollowUp (string max 15 words)",
-    "- marketIntel: object with:",
-    "    alternativeTitles (array of exactly 8 objects, each with: title (string), commonAt (string — type of company using this title e.g. Series A startup / FAANG), notes (string max 10 words))",
-    "    salaryBenchmarks (array of exactly 5 objects, each with: level (string e.g. Mid-level/Senior/Staff), locationContext (string e.g. US Remote / SF Bay Area / India Remote), baseSalary (string e.g. $120K-$150K or 25-40 LPA), totalComp (string including equity if relevant), source (string one of levels.fyi estimate / YC benchmark / Glassdoor estimate))",
-    "    hiringMarketSummary (string 2-3 sentences on how hard this talent is to find and one tactical sourcing tip)",
+    "JSON structure:",
+    "{ roleTitle, summary, mustHaveSkills: [{skill, category, proficiencyRequired, weight, why}], niceToHaveSkills: [{skill, category, proficiencyRequired, weight, why}], redFlags: [], talentInsights: {booleanStrings: [{platform, query}], talentPools: [], targetCompanies: [], conferenceAndEvents: [], hiringSignals: []}, marketIntel: {alternativeTitles: [{title, commonAt, notes}], salaryBenchmarks: [{level, locationContext, baseSalary, totalComp, source}], hiringMarketSummary}, scorecard: [{criterion, weight, description, scaleOne, scaleFive}], recruiterScreenQuestions: [{question, intent, greenFlag, redFlag}], interviewQuestions: [{skill, type, question, probeFollowUp}] }",
     "",
-    "INTAKE DATA:",
-    "Role: " + d.role,
-    "Seniority: " + (d.seniority || "Not specified"),
-    "Company Stage: " + (d.stage || "Not specified"),
-    "Problem this hire solves: " + d.problem,
-    "90-day success: " + (d.success90 || "Not provided"),
-    "12-month success: " + (d.success12 || "Not provided"),
-    "Reports to and collaborates with: " + (d.reports || "Not provided"),
-    "Required tools and stack: " + (d.tools || "Not provided"),
-    "Dealbreakers: " + (d.dealbreakers || "None stated"),
-    "Traits the hiring manager keeps mentioning: " + (d.traits || "Not provided"),
-    "Internal analogy: " + (d.analogy || "None"),
-    "What has not worked before: " + (d.failures || "Not provided"),
-    "Other notes: " + (d.other || "None"),
+    "Rules: mustHaveSkills=5 items, niceToHaveSkills=3, redFlags=3, booleanStrings=3, talentPools=4, targetCompanies=5, conferenceAndEvents=3, hiringSignals=3, alternativeTitles=6, salaryBenchmarks=4, scorecard=4, recruiterScreenQuestions=4, interviewQuestions=4.",
+    "Keep all strings short. proficiencyRequired must be integer 1-5. weight must be High/Medium/Low.",
     "",
-    "Be specific to this exact role. Use real company names. Write ready-to-paste boolean strings. Return only the JSON object."
+    "ROLE: " + d.role,
+    "PROBLEM: " + d.problem,
+    "SENIORITY: " + (d.seniority || "Senior"),
+    "STAGE: " + (d.stage || "Series A"),
+    "90 DAYS: " + (d.success90 || ""),
+    "STACK: " + (d.tools || ""),
+    "TRAITS: " + (d.traits || ""),
+    "DEALBREAKERS: " + (d.dealbreakers || ""),
+    "",
+    "Return only the JSON object."
   ].join("\n");
 }
+
 
 async function generateMatrix() {
   const data = getIntakeData();
@@ -1046,8 +1026,8 @@ async function generateMatrix() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 8000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
         system: 'You are a recruitment specialist. Output ONLY raw valid JSON — no markdown, no backticks, no explanation. Start your response with { and end with }.',
         messages: [{ role: 'user', content: buildPrompt(data) }]
       })

@@ -10,8 +10,13 @@ exports.handler = async function(event) {
       body: ''
     };
   }
+
   try {
     const body = JSON.parse(event.body);
+
+    // Reduce tokens to avoid timeout
+    body.max_tokens = 4000;
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -21,16 +26,33 @@ exports.handler = async function(event) {
       },
       body: JSON.stringify(body)
     });
-    const data = await response.json();
+
+    const text = await response.text();
+
+    // Try to parse as JSON, return raw text if it fails
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(e) {
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: { message: 'Proxy got non-JSON from Anthropic: ' + text.slice(0, 300) } })
+      };
+    }
+
     return {
       statusCode: response.status,
-      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(data)
     };
   } catch(err) {
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: { message: err.message } })
     };
   }

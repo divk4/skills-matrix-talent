@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Matrix Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+
+  :root {
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --border: #E2DDD6;
+    --ink: #1A1917;
+    --ink-muted: #6B6560;
+    --ink-faint: #A8A39D;
+    --accent: #2D5BE3;
+    --accent-light: #EEF2FD;
+    --must: #1A4D2E;
+    --must-bg: #EDFAF2;
+    --nice: #7A4F00;
+    --nice-bg: #FFF8EC;
+    --vetting: #2D2A8A;
+    --vetting-bg: #F0EFFC;
+    --tag-bg: #EDEDEA;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--ink);
+    color: #fff;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .logo span { color: #7B9EFF; }
+  .stage-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .stage-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #444;
+    transition: background 0.3s;
+  }
+  .stage-dot.active { background: #7B9EFF; }
+  .stage-dot.done { background: #4CAF7D; }
+
+  /* LAYOUT */
+  .shell {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* STAGE HEADER */
+  .stage-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .stage-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .stage-desc {
+    color: var(--ink-muted);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  /* QUESTION */
+  .q-group { margin-bottom: 24px; }
+  .q-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .q-required { color: var(--accent); }
+  .q-hint {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 13px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--bg);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    resize: vertical;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45,91,227,0.1);
+    background: #fff;
+  }
+  textarea { min-height: 90px; }
+  select { cursor: pointer; }
+
+  /* RADIO GROUP */
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .radio-pill {
+    label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--bg);
+      color: var(--ink-muted);
+      user-select: none;
+    }
+    input[type="radio"] { display: none; }
+    input[type="radio"]:checked + label {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 500;
+    }
+  }
+
+  /* CHECKBOX GROUP */
+  .checkbox-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .check-item {
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--bg);
+    }
+    input[type="checkbox"] { display: none; }
+    input[type="checkbox"]:checked + label {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      color: var(--accent);
+      font-weight: 500;
+    }
+    label::before {
+      content: '';
+      width: 15px; height: 15px;
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    input[type="checkbox"]:checked + label::before {
+      background: var(--accent);
+      border-color: var(--accent);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4L3.5 6.5L9 1' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+  }
+
+  /* SECTION DIVIDER */
+  .section-divider {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin: 28px 0 20px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #2349C0; }
+  .btn-primary:disabled { background: var(--ink-faint); cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+  /* LOADING */
+  .loading-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--ink-muted); font-size: 14px; }
+  .loading-sub { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
+
+  /* SKILL MATRIX OUTPUT */
+  .matrix-role-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .role-name {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .role-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .meta-tag {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--tag-bg);
+    color: var(--ink-muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* SKILL TABLE */
+  .skill-section { margin-bottom: 28px; }
+  .skill-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .skill-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge-must { background: var(--must-bg); color: var(--must); }
+  .badge-nice { background: var(--nice-bg); color: var(--nice); }
+  .badge-vetting { background: var(--vetting-bg); color: var(--vetting); }
+
+  .skill-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .skill-table th {
+    text-align: left;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .skill-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .skill-table tr:last-child td { border-bottom: none; }
+  .skill-table tr:hover td { background: var(--bg); }
+  .skill-name { font-weight: 500; color: var(--ink); }
+  .skill-why { color: var(--ink-muted); font-size: 12px; margin-top: 2px; }
+
+  /* PROFICIENCY BARS */
+  .prof-bar {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+  .prof-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .prof-dot.filled { background: var(--accent); }
+
+  /* WEIGHT PILL */
+  .weight-pill {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--ink-muted);
+  }
+  .weight-high { background: #FFF0F0; color: #C0392B; }
+  .weight-med { background: #FFF8EC; color: #A05A00; }
+  .weight-low { background: #F0FAF0; color: #2D6A4F; }
+
+  /* OUTPUT SECTIONS */
+  .output-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .output-tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .output-tab:hover { color: var(--ink); }
+  .output-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* SOURCING KEYWORDS */
+  .keyword-group { margin-bottom: 20px; }
+  .keyword-group-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .keyword-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .keyword-tag {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: var(--tag-bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid var(--border);
+  }
+  .keyword-tag:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+  /* SCORECARD */
+  .scorecard-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .scorecard-row:last-child { border-bottom: none; }
+  .score-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--border);
+    min-width: 32px;
+    line-height: 1;
+    padding-top: 2px;
+  }
+  .score-content { flex: 1; }
+  .score-criterion { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
+  .score-desc { font-size: 13px; color: var(--ink-muted); }
+  .score-scale {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+  .score-weight-label {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  /* INTERVIEW Q'S */
+  .iq-item {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .iq-item:last-child { border-bottom: none; }
+  .iq-tag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+  .iq-q { font-weight: 500; font-size: 14px; margin-bottom: 4px; }
+  .iq-probe { font-size: 12px; color: var(--ink-muted); }
+  .iq-probe span { color: var(--accent); font-weight: 500; }
+
+  /* COPY BUTTON */
+  .copy-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    color: var(--ink-muted);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  .output-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ERROR */
+  .error-box {
+    background: #FFF0F0;
+    border: 1px solid #FFCDD2;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 13px;
+    color: #C62828;
+    margin-top: 12px;
+  }
+
+  /* PROGRESS */
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* TOOLTIP */
+  .tooltip-wrap { position: relative; display: inline-flex; align-items: center; }
+  .tooltip-icon {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--tag-bg);
+    color: var(--ink-faint);
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: help;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+
+  /* CATEGORY LABEL */
+  .cat-label {
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* TALENT INTELLIGENCE SECTIONS */
+  .ti-section {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ti-section:last-child { border-bottom: none; }
+  .ti-section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .ti-section-sub {
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+
+  /* BOOLEAN ROWS */
+  .bool-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 7px;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+  }
+  .bool-platform {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .bool-query {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--ink);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  /* COMPANY GRID */
+  .company-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .company-card {
+    padding: 10px 13px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface);
+  }
+  .company-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .company-reason {
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.4;
+  }
+
+  /* HIRING SIGNALS */
+  .signal-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .signal-item:last-child { border-bottom: none; }
+  .signal-dot {
+    color: var(--accent);
+    font-size: 10px;
+    flex-shrink: 0;
+    padding-top: 3px;
+  }
+
+  /* PHONE SCREEN */
+  .screen-item {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .screen-item:last-child { border-bottom: none; }
+  .screen-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .screen-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .screen-question {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .screen-intent {
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-style: italic;
+    margin-bottom: 8px;
+    padding-left: 42px;
+  }
+  .screen-flags {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding-left: 42px;
+  }
+  .screen-flag {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    line-height: 1.4;
+  }
+  .screen-flag span { font-weight: 600; }
+  .screen-flag.green { background: var(--must-bg); color: var(--must); }
+  .screen-flag.red { background: #FFF0F0; color: #C0392B; }
+
+  @media (max-width: 600px) {
+    .shell { padding: 24px 16px 60px; }
+    .checkbox-grid { grid-template-columns: 1fr; }
+    .stage-title { font-size: 22px; }
+    .company-grid { grid-template-columns: 1fr; }
+    .screen-flags { padding-left: 0; }
+    .screen-intent { padding-left: 0; }
+    .output-tabs { overflow-x: auto; }
+    .output-tab { white-space: nowrap; }
+  }
+
+  /* ALT TITLES */
+  .alt-title-row { display:flex; align-items:flex-start; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); gap:12px; }
+  .alt-title-row:last-child { border-bottom:none; }
+  .alt-title-name { font-size:13px; font-weight:600; color:var(--ink); min-width:180px; }
+  .alt-title-meta { display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:flex-end; flex:1; }
+  .alt-title-company { font-size:11px; font-family:'DM Mono',monospace; background:var(--accent-light); color:var(--accent); padding:2px 8px; border-radius:4px; white-space:nowrap; }
+  .alt-title-notes { font-size:12px; color:var(--ink-faint); font-style:italic; }
+
+  /* SALARY TABLE */
+  .salary-table { width:100%; border-collapse:collapse; font-size:13px; min-width:500px; }
+  .salary-table th { text-align:left; font-size:11px; font-family:'DM Mono',monospace; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-faint); padding:8px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .salary-table td { padding:11px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .salary-table tr:last-child td { border-bottom:none; }
+  .salary-table tr:hover td { background:var(--bg); }
+  .salary-level { font-weight:600; color:var(--ink); }
+  .salary-location { font-size:12px; font-family:'DM Mono',monospace; color:var(--ink-muted); background:var(--tag-bg); padding:2px 8px; border-radius:4px; white-space:nowrap; }
+  .salary-base { font-size:14px; color:#1A4D2E; font-weight:600; }
+  .salary-tc { font-size:13px; color:var(--ink-muted); }
+  .salary-source { font-size:11px; font-family:'DM Mono',monospace; color:var(--ink-faint); }
+  .market-summary { font-size:14px; line-height:1.7; color:var(--ink-muted); padding:14px; background:var(--bg); border-radius:8px; border-left:3px solid var(--accent); margin-top:10px; }
+
+  /* HISTORY BAR */
+  .history-bar { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin-bottom:24px; box-shadow:var(--shadow); }
+  .history-bar-header { display:flex; align-items:center; justify-content:space-between; }
+  .history-bar-title { font-size:13px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  .history-count { font-family:'DM Mono',monospace; font-size:10px; background:var(--accent-light); color:var(--accent); padding:2px 7px; border-radius:10px; font-weight:500; }
+  .history-toggle { font-size:12px; color:var(--ink-faint); cursor:pointer; background:none; border:none; font-family:'DM Sans',sans-serif; padding:0; }
+  .history-toggle:hover { color:var(--accent); }
+  .history-list { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+  .history-list.collapsed { display:none; }
+  .history-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg); transition:border-color 0.15s; }
+  .history-item:hover { border-color:var(--accent); }
+  .history-item-info { flex:1; min-width:0; }
+  .history-item-role { font-size:13px; font-weight:500; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .history-item-meta { font-size:11px; color:var(--ink-faint); font-family:'DM Mono',monospace; margin-top:2px; }
+  .history-item-actions { display:flex; gap:6px; flex-shrink:0; }
+  .history-load-btn { font-size:12px; padding:5px 12px; border-radius:6px; background:var(--accent); color:#fff; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:500; }
+  .history-load-btn:hover { background:#2349C0; }
+  .history-delete-btn { font-size:12px; padding:5px 8px; border-radius:6px; background:transparent; color:var(--ink-faint); border:1px solid var(--border); cursor:pointer; font-family:'DM Sans',sans-serif; }
+  .history-delete-btn:hover { background:#FFF0F0; color:#C0392B; border-color:#FFCDD2; }
+  .history-empty { text-align:center; padding:20px; color:var(--ink-faint); font-size:13px; }
+  .saved-toast { position:fixed; bottom:24px; right:24px; background:var(--ink); color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:500; z-index:999; opacity:0; transform:translateY(8px); transition:all 0.25s; pointer-events:none; }
+  .saved-toast.show { opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Skill<span>Matrix</span> ↗</div>
+  <div class="stage-dots">
+    <div class="stage-dot active" id="dot-1"></div>
+    <div class="stage-dot" id="dot-2"></div>
+    <div class="stage-dot" id="dot-3"></div>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- HISTORY BAR -->
+  <div class="history-bar" id="history-bar">
+    <div class="history-bar-header">
+      <div class="history-bar-title">📁 Saved Matrices <span class="history-count" id="history-count">0</span></div>
+      <button class="history-toggle" id="history-toggle-btn" onclick="toggleHistory()">Show ▾</button>
+    </div>
+    <div class="history-list collapsed" id="history-list"></div>
+  </div>
+  <div class="saved-toast" id="saved-toast"></div>
+
+  <!-- STAGE 1: INTAKE -->
+  <div id="stage-intake">
+    <div class="stage-label">Stage 1 of 3</div>
+    <div class="stage-title">Intake Questionnaire</div>
+    <div class="stage-desc">Answer these questions as if you're in a discovery call with the hiring manager. The more honest and specific, the better your matrix.</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:0%" id="intake-progress"></div></div>
+
+    <div class="card">
+      <div class="section-divider">Role Basics</div>
+
+      <div class="q-group">
+        <div class="q-label">Role title & team <span class="q-required">*</span></div>
+        <div class="q-hint">e.g. "Senior Product Designer, Growth team" — be as specific as you know</div>
+        <input type="text" id="q-role" placeholder="e.g. Head of Growth, Series A fintech startup">
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">What problem is this hire solving? <span class="q-required">*</span></div>
+        <div class="q-hint">In plain language — what breaks or doesn't exist without this person?</div>
+        <textarea id="q-problem" placeholder="e.g. We have no one owning paid acquisition. The founder is doing it manually and we're leaving 30% growth on the table..."></textarea>
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">What does success look like in 90 days?</div>
+        <div class="q-hint">Concrete outcomes, not vibes. If they say "ramp up" — push for specifics.</div>
+        <textarea id="q-success90" placeholder="e.g. CAC below $40, one new paid channel live, weekly reporting cadence set up..."></textarea>
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">What does success look like in 12 months?</div>
+        <textarea id="q-success12" placeholder="e.g. Owns the full $2M growth budget, team of 2-3 under them..."></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-divider">Context & Constraints</div>
+
+      <div class="q-group">
+        <div class="q-label">Seniority level</div>
+        <div class="radio-group">
+          <div class="radio-pill"><input type="radio" name="seniority" id="s1" value="Junior/IC (0-3 yrs)"><label for="s1">Junior / IC (0–3 yrs)</label></div>
+          <div class="radio-pill"><input type="radio" name="seniority" id="s2" value="Mid-level IC (3-6 yrs)"><label for="s2">Mid-level IC (3–6 yrs)</label></div>
+          <div class="radio-pill"><input type="radio" name="seniority" id="s3" value="Senior IC (6+ yrs)"><label for="s3">Senior IC (6+ yrs)</label></div>
+          <div class="radio-pill"><input type="radio" name="seniority" id="s4" value="Manager/Lead"><label for="s4">Manager / Lead</label></div>
+          <div class="radio-pill"><input type="radio" name="seniority" id="s5" value="Director/Head"><label for="s5">Director / Head</label></div>
+          <div class="radio-pill"><input type="radio" name="seniority" id="s6" value="VP/C-Suite"><label for="s6">VP / C-Suite</label></div>
+        </div>
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">Company stage</div>
+        <div class="radio-group">
+          <div class="radio-pill"><input type="radio" name="stage" id="st1" value="Pre-seed / Seed"><label for="st1">Pre-seed / Seed</label></div>
+          <div class="radio-pill"><input type="radio" name="stage" id="st2" value="Series A"><label for="st2">Series A</label></div>
+          <div class="radio-pill"><input type="radio" name="stage" id="st3" value="Series B"><label for="st3">Series B</label></div>
+          <div class="radio-pill"><input type="radio" name="stage" id="st4" value="Series C+"><label for="st4">Series C+</label></div>
+          <div class="radio-pill"><input type="radio" name="stage" id="st5" value="Growth / Pre-IPO"><label for="st5">Growth / Pre-IPO</label></div>
+        </div>
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">Who does this person report to & collaborate with daily?</div>
+        <input type="text" id="q-reports" placeholder="e.g. Reports to CEO, works closely with Product, Engineering, and Sales leads">
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">What existing tools, stack, or systems must they already know?</div>
+        <textarea id="q-tools" placeholder="e.g. Must know Salesforce, HubSpot; SQL a plus; we use Notion + Linear internally..." style="min-height:70px;"></textarea>
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">Are there any hard dealbreakers? (background, geography, sector, compliance, etc.)</div>
+        <textarea id="q-dealbreakers" placeholder="e.g. Must have fintech or regulated industry experience. Cannot be from a purely consumer background..." style="min-height:70px;"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-divider">Culture & Working Style</div>
+
+      <div class="q-group">
+        <div class="q-label">What traits does the hiring manager mention unprompted?</div>
+        <div class="q-hint">What do they keep coming back to? Ownership? Speed? Communication? Rigor?</div>
+        <textarea id="q-traits" placeholder="e.g. 'We need someone who can figure things out themselves — we don't have bandwidth to hold their hand'..." style="min-height:70px;"></textarea>
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">Who is a good internal analogy for this role?</div>
+        <div class="q-hint">Think of someone at the company who would succeed in this role — what makes them good?</div>
+        <input type="text" id="q-analogy" placeholder="e.g. 'Someone like our Head of Data — self-driven, asks good questions, ships fast'">
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">What type of candidates have NOT worked out in similar roles here?</div>
+        <div class="q-hint">Past failures tell you as much as past successes.</div>
+        <textarea id="q-failures" placeholder="e.g. 'We hired someone from a big company who needed a lot of process and structure — that didn't work here'..." style="min-height:70px;"></textarea>
+      </div>
+
+      <div class="q-group">
+        <div class="q-label">Anything else the hiring manager said that felt important?</div>
+        <textarea id="q-other" placeholder="Any specific quotes, context, or nuances worth capturing..." style="min-height:70px;"></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="generateMatrix()" id="generate-btn">
+        Generate Skill Matrix →
+      </button>
+    </div>
+    <div id="intake-error"></div>
+  </div>
+
+  <!-- STAGE 2: LOADING -->
+  <div id="stage-loading" style="display:none;">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">Analyzing intake responses...</div>
+      <div class="loading-sub" id="loading-sub">Building your skill matrix, sourcing kit, and scorecard</div>
+    </div>
+  </div>
+
+  <!-- STAGE 3: OUTPUT -->
+  <div id="stage-output" style="display:none;">
+    <div class="stage-label">Stage 3 of 3</div>
+    <div class="stage-title">Skill Matrix & Hiring Kit</div>
+    <div class="stage-desc">Generated from your intake. Use across sourcing, screening, and structured interviews.</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+
+    <div id="output-container"></div>
+
+    <div class="btn-row" style="margin-top:32px;">
+      <button class="btn btn-ghost" onclick="resetTool()">← Start New Role</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Track intake progress
+const trackProgress = () => {
+  const fields = ['q-role','q-problem','q-success90','q-success12','q-tools','q-traits'];
+  let filled = fields.filter(id => document.getElementById(id)?.value?.trim()).length;
+  document.getElementById('intake-progress').style.width = `${(filled/fields.length)*100}%`;
+};
+document.querySelectorAll('input, textarea, select').forEach(el => {
+  el.addEventListener('input', trackProgress);
+  el.addEventListener('change', trackProgress);
+});
+
+function getIntakeData() {
+  const seniority = document.querySelector('input[name="seniority"]:checked')?.value || '';
+  const stage = document.querySelector('input[name="stage"]:checked')?.value || '';
+  return {
+    role: document.getElementById('q-role').value.trim(),
+    problem: document.getElementById('q-problem').value.trim(),
+    success90: document.getElementById('q-success90').value.trim(),
+    success12: document.getElementById('q-success12').value.trim(),
+    seniority, stage,
+    reports: document.getElementById('q-reports').value.trim(),
+    tools: document.getElementById('q-tools').value.trim(),
+    dealbreakers: document.getElementById('q-dealbreakers').value.trim(),
+    traits: document.getElementById('q-traits').value.trim(),
+    analogy: document.getElementById('q-analogy').value.trim(),
+    failures: document.getElementById('q-failures').value.trim(),
+    other: document.getElementById('q-other').value.trim()
+  };
+}
+
+const loadingMessages = [
+  ['Analyzing role context...', 'Identifying the real job beneath the job title'],
+  ['Mapping skill clusters...', 'Separating must-haves from nice-to-haves'],
+  ['Building sourcing intelligence...', 'Boolean strings, talent pools, target companies'],
+  ['Designing scorecard criteria...', 'Weighted rubric with evaluation prompts'],
+  ['Writing screening & interview questions...', 'Recruiter phone screen + structured probes'],
+];
+
+function buildPrompt(d) {
+  return [
+    "Generate a recruitment skill matrix and talent intelligence kit as a compact JSON object.",
+    "Return ONLY the raw JSON. No markdown fences, no backticks, no explanation, no text before or after.",
+    "",
+    "Required JSON structure:",
+    "- roleTitle: string",
+    "- summary: string (2 sentences max)",
+    "- mustHaveSkills: array of exactly 6 objects, each with: skill (string), category (one of Technical/Domain/Leadership/Soft Skill/Process), proficiencyRequired (integer 1 to 5), weight (one of High/Medium/Low), why (string max 20 words)",
+    "- niceToHaveSkills: array of exactly 3 objects, same shape as mustHaveSkills",
+    "- redFlags: array of exactly 4 strings, each max 20 words",
+    "- talentInsights: object with:",
+    "    booleanStrings (array of exactly 4 objects, each with: platform (one of LinkedIn/GitHub/Twitter/Google X-Ray), query (ready-to-use boolean search string))",
+    "    talentPools (array of exactly 5 strings — specific communities, slack groups, discords, subreddits, newsletters, or online spaces where this talent hangs out)",
+    "    targetCompanies (array of exactly 8 strings — specific real company names to poach from, with a 1-sentence reason each, formatted as 'CompanyName: reason')",
+    "    conferenceAndEvents (array of exactly 4 strings — specific conferences, meetups, or events where this talent appears)",
+    "    hiringSignals (array of exactly 4 strings — signals that indicate someone may be open to move, e.g. recent layoffs, funding news, role changes)",
+    "- scorecard: array of exactly 5 objects, each with: criterion (string), weight (one of High/Medium/Low), description (string max 15 words), scaleOne (string max 15 words describing a score of 1), scaleFive (string max 15 words describing a score of 5)",
+    "- recruiterScreenQuestions: array of exactly 6 objects, each with: question (string — what the recruiter asks on the phone screen), intent (string max 12 words — what this question is actually trying to surface), greenFlag (string max 15 words — what a strong answer sounds like), redFlag (string max 15 words — what a weak answer sounds like)",
+    "- interviewQuestions: array of exactly 5 objects, each with: skill (string), type (one of Behavioral/Situational/Technical), question (string), probeFollowUp (string max 15 words)",
+    "- marketIntel: object with:",
+    "    alternativeTitles (array of exactly 8 objects, each with: title (string), commonAt (string — type of company using this title e.g. Series A startup / FAANG), notes (string max 10 words))",
+    "    salaryBenchmarks (array of exactly 5 objects, each with: level (string e.g. Mid-level/Senior/Staff), locationContext (string e.g. US Remote / SF Bay Area / India Remote), baseSalary (string e.g. $120K-$150K or 25-40 LPA), totalComp (string including equity if relevant), source (string one of levels.fyi estimate / YC benchmark / Glassdoor estimate))",
+    "    hiringMarketSummary (string 2-3 sentences on how hard this talent is to find and one tactical sourcing tip)",
+    "",
+    "INTAKE DATA:",
+    "Role: " + d.role,
+    "Seniority: " + (d.seniority || "Not specified"),
+    "Company Stage: " + (d.stage || "Not specified"),
+    "Problem this hire solves: " + d.problem,
+    "90-day success: " + (d.success90 || "Not provided"),
+    "12-month success: " + (d.success12 || "Not provided"),
+    "Reports to and collaborates with: " + (d.reports || "Not provided"),
+    "Required tools and stack: " + (d.tools || "Not provided"),
+    "Dealbreakers: " + (d.dealbreakers || "None stated"),
+    "Traits the hiring manager keeps mentioning: " + (d.traits || "Not provided"),
+    "Internal analogy: " + (d.analogy || "None"),
+    "What has not worked before: " + (d.failures || "Not provided"),
+    "Other notes: " + (d.other || "None"),
+    "",
+    "Be specific to this exact role. Use real company names. Write ready-to-paste boolean strings. Return only the JSON object."
+  ].join("\n");
+}
+
+async function generateMatrix() {
+  const data = getIntakeData();
+  if (!data.role || !data.problem) {
+    document.getElementById('intake-error').innerHTML = '<div class="error-box">Please fill in at least the role title and the problem this hire solves.</div>';
+    return;
+  }
+  document.getElementById('intake-error').innerHTML = '';
+  document.getElementById('stage-intake').style.display = 'none';
+  document.getElementById('stage-loading').style.display = 'block';
+
+  let mi = 0;
+  const msgInterval = setInterval(() => {
+    if (mi < loadingMessages.length) {
+      document.getElementById('loading-text').textContent = loadingMessages[mi][0];
+      document.getElementById('loading-sub').textContent = loadingMessages[mi][1];
+      mi++;
+    }
+  }, 1800);
+
+  try {
+    const response = await fetch('/.netlify/functions/claude-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        system: 'You are a recruitment specialist. Output ONLY raw valid JSON — no markdown, no backticks, no explanation. Start your response with { and end with }.',
+        messages: [{ role: 'user', content: buildPrompt(data) }]
+      })
+    });
+
+    clearInterval(msgInterval);
+    const result = await response.json();
+
+    if (result.error) throw new Error(result.error.message || 'API error');
+
+    const rawText = (result.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim());
+    } catch(e1) {
+      try {
+        const start = rawText.indexOf('{');
+        const end = rawText.lastIndexOf('}');
+        if (start === -1 || end === -1) throw new Error('no braces');
+        parsed = JSON.parse(rawText.slice(start, end + 1));
+      } catch(e2) {
+        throw new Error('API returned: ' + rawText.slice(0, 200));
+      }
+    }
+
+    document.getElementById('stage-loading').style.display = 'none';
+    document.getElementById('stage-output').style.display = 'block';
+    document.getElementById('dot-1').classList.replace('active','done');
+    document.getElementById('dot-2').classList.add('done');
+    document.getElementById('dot-3').classList.add('active');
+    renderOutput(parsed, data);
+    saveToHistory(parsed, data);
+
+  } catch(err) {
+    clearInterval(msgInterval);
+    document.getElementById('stage-loading').style.display = 'none';
+    document.getElementById('stage-intake').style.display = 'block';
+    document.getElementById('intake-error').innerHTML = '<div class="error-box">Error: ' + err.message + '</div>';
+  }
+}
+
+function weightClass(w) {
+  return w === 'High' ? 'weight-high' : w === 'Medium' ? 'weight-med' : 'weight-low';
+}
+
+function profBar(n) {
+  let html = '<div class="prof-bar">';
+  for(let i=1;i<=5;i++) html += '<div class="prof-dot ' + (i<=n?'filled':'') + '"></div>';
+  return html + '</div>';
+}
+
+function skillRows(skills) {
+  return (skills||[]).map(s =>
+    '<tr>' +
+    '<td><div class="skill-name">' + (s.skill||'') + '</div><div class="skill-why">' + (s.why||'') + '</div></td>' +
+    '<td><span class="cat-label">' + (s.category||'') + '</span></td>' +
+    '<td>' + profBar(s.proficiencyRequired||3) + '</td>' +
+    '<td><span class="weight-pill ' + weightClass(s.weight||'Medium') + '">' + (s.weight||'') + '</span></td>' +
+    '</tr>'
+  ).join('');
+}
+
+function renderOutput(data, intake) {
+  const c = document.getElementById('output-container');
+  const ti = data.talentInsights || {};
+
+  // BOOLEAN STRINGS
+  const boolRows = (ti.booleanStrings||[]).map(b =>
+    '<div class="bool-row">' +
+    '<div class="bool-platform">' + (b.platform||'') + '</div>' +
+    '<div class="bool-query">' + (b.query||'') + '</div>' +
+    '<button class="copy-btn" onclick="copyText(this, \'' + (b.query||'').replace(/'/g, "\\'") + '\')">Copy</button>' +
+    '</div>'
+  ).join('');
+
+  // TALENT POOLS
+  const poolTags = (ti.talentPools||[]).map(p => '<span class="keyword-tag">' + p + '</span>').join('');
+
+  // TARGET COMPANIES
+  const companyCards = (ti.targetCompanies||[]).map(c => {
+    const parts = c.split(':');
+    const name = parts[0] ? parts[0].trim() : c;
+    const reason = parts.slice(1).join(':').trim();
+    return '<div class="company-card"><div class="company-name">' + name + '</div>' + (reason ? '<div class="company-reason">' + reason + '</div>' : '') + '</div>';
+  }).join('');
+
+  // CONFERENCES
+  const confTags = (ti.conferenceAndEvents||[]).map(e => '<span class="keyword-tag">' + e + '</span>').join('');
+
+  // HIRING SIGNALS
+  const signalItems = (ti.hiringSignals||[]).map(s =>
+    '<div class="signal-item"><span class="signal-dot">◉</span><span>' + s + '</span></div>'
+  ).join('');
+
+  // SCORECARD
+  const scorecardRows = (data.scorecard||[]).map((s,i) =>
+    '<div class="scorecard-row">' +
+    '<div class="score-num">0' + (i+1) + '</div>' +
+    '<div class="score-content">' +
+    '<div class="score-criterion">' + (s.criterion||'') + '</div>' +
+    '<div class="score-desc">' + (s.description||'') + '</div>' +
+    '<div class="score-scale">1 — ' + (s.scaleOne||'') + ' &nbsp;|&nbsp; 5 — ' + (s.scaleFive||'') + '</div>' +
+    '</div>' +
+    '<span class="weight-pill ' + weightClass(s.weight||'Medium') + ' score-weight-label">' + (s.weight||'') + '</span>' +
+    '</div>'
+  ).join('');
+
+  // RECRUITER SCREEN QUESTIONS
+  const screenRows = (data.recruiterScreenQuestions||[]).map((q,i) =>
+    '<div class="screen-item">' +
+    '<div class="screen-header">' +
+    '<span class="screen-num">Q' + (i+1) + '</span>' +
+    '<div class="screen-question">' + (q.question||'') + '</div>' +
+    '</div>' +
+    '<div class="screen-intent">Intent: ' + (q.intent||'') + '</div>' +
+    '<div class="screen-flags">' +
+    '<div class="screen-flag green"><span>✓ Green flag:</span> ' + (q.greenFlag||'') + '</div>' +
+    '<div class="screen-flag red"><span>✕ Red flag:</span> ' + (q.redFlag||'') + '</div>' +
+    '</div>' +
+    '</div>'
+  ).join('');
+
+  // INTERVIEW QUESTIONS
+  const iqRows = (data.interviewQuestions||[]).map(q =>
+    '<div class="iq-item">' +
+    '<div class="iq-tag">' + (q.type||'') + ' · ' + (q.skill||'') + '</div>' +
+    '<div class="iq-q">' + (q.question||'') + '</div>' +
+    '<div class="iq-probe">If shallow: <span>' + (q.probeFollowUp||'') + '</span></div>' +
+    '</div>'
+  ).join('');
+
+  // RED FLAGS
+  const redFlagItems = (data.redFlags||[]).map(r =>
+    '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">' +
+    '<span style="color:#C0392B;flex-shrink:0;">✕</span><span>' + r + '</span></div>'
+  ).join('');
+
+  // MARKET INTEL HTML
+  const mi = data.marketIntel || {};
+  const altTitleRows = (mi.alternativeTitles||[]).map(t =>
+    '<div class="alt-title-row">' +
+    '<div class="alt-title-name">' + (t.title||'') + '</div>' +
+    '<div class="alt-title-meta">' +
+    '<span class="alt-title-company">' + (t.commonAt||'') + '</span>' +
+    (t.notes ? '<span class="alt-title-notes">' + t.notes + '</span>' : '') +
+    '</div></div>'
+  ).join('');
+
+  const salaryRows = (mi.salaryBenchmarks||[]).map(s =>
+    '<tr>' +
+    '<td><span class="salary-level">' + (s.level||'') + '</span></td>' +
+    '<td><span class="salary-location">' + (s.locationContext||'') + '</span></td>' +
+    '<td><strong class="salary-base">' + (s.baseSalary||'') + '</strong></td>' +
+    '<td class="salary-tc">' + (s.totalComp||'') + '</td>' +
+    '<td><span class="salary-source">' + (s.source||'') + '</span></td>' +
+    '</tr>'
+  ).join('');
+
+  const marketIntelHtml =
+    '<div class="ti-section">' +
+    '<div class="ti-section-label">Alternative Job Titles for This Role</div>' +
+    '<div class="ti-section-sub">Same role, different names — search all of these when sourcing</div>' +
+    '<div style="margin-top:12px;">' + altTitleRows + '</div>' +
+    '</div>' +
+    '<div class="ti-section">' +
+    '<div class="ti-section-label">Salary Benchmarks</div>' +
+    '<div class="ti-section-sub">Use to set hiring manager expectations and calibrate offers</div>' +
+    '<div style="overflow-x:auto;margin-top:12px;"><table class="salary-table">' +
+    '<thead><tr><th>Level</th><th>Location</th><th>Base</th><th>Total Comp</th><th>Source</th></tr></thead>' +
+    '<tbody>' + salaryRows + '</tbody></table></div>' +
+    '</div>' +
+    (mi.hiringMarketSummary ?
+      '<div class="ti-section"><div class="ti-section-label">Hiring Market Summary</div>' +
+      '<div class="market-summary">' + mi.hiringMarketSummary + '</div></div>' : '');
+
+  c.innerHTML =
+    // ROLE HEADER CARD
+    '<div class="card">' +
+    '<div class="matrix-role-header">' +
+    '<div><div class="role-name">' + (data.roleTitle||'') + '</div>' +
+    '<div class="role-meta">' +
+    (intake.seniority ? '<span class="meta-tag">' + intake.seniority + '</span>' : '') +
+    (intake.stage ? '<span class="meta-tag">' + intake.stage + '</span>' : '') +
+    '<span class="meta-tag">' + (data.mustHaveSkills||[]).length + ' must-haves · ' + (data.niceToHaveSkills||[]).length + ' nice-to-haves</span>' +
+    '</div></div></div>' +
+    '<div style="font-size:14px;color:var(--ink-muted);line-height:1.6;padding:14px;background:var(--bg);border-radius:8px;">' + (data.summary||'') + '</div>' +
+    '</div>' +
+
+    // TABS CARD
+    '<div class="card">' +
+    '<div class="output-tabs">' +
+    '<button class="output-tab active" onclick="switchTab(\'matrix\', this)">Skill Matrix</button>' +
+    '<button class="output-tab" onclick="switchTab(\'talent\', this)">Talent Intelligence</button>' +
+    '<button class="output-tab" onclick="switchTab(\'screen\', this)">Phone Screen</button>' +
+    '<button class="output-tab" onclick="switchTab(\'scorecard\', this)">Scorecard</button>' +
+    '<button class="output-tab" onclick="switchTab(\'interviews\', this)">Interview Qs</button>' +
+    '<button class="output-tab" onclick="switchTab(\'market\', this)">Market Intel</button>' +
+    '</div>' +
+
+    // TAB: SKILL MATRIX
+    '<div class="tab-content active" id="tab-matrix">' +
+    '<div class="skill-section"><div class="skill-section-header"><span class="skill-badge badge-must">Must-Have</span><span style="font-size:12px;color:var(--ink-faint);">Non-negotiable — screen out if missing</span></div>' +
+    '<table class="skill-table"><thead><tr><th>Skill</th><th>Category</th><th>Proficiency</th><th>Weight</th></tr></thead><tbody>' + skillRows(data.mustHaveSkills) + '</tbody></table></div>' +
+    '<div class="skill-section"><div class="skill-section-header"><span class="skill-badge badge-nice">Nice-to-Have</span><span style="font-size:12px;color:var(--ink-faint);">Accelerators — add signal, not gatekeepers</span></div>' +
+    '<table class="skill-table"><thead><tr><th>Skill</th><th>Category</th><th>Proficiency</th><th>Weight</th></tr></thead><tbody>' + skillRows(data.niceToHaveSkills) + '</tbody></table></div>' +
+    '<div class="skill-section"><div class="skill-section-header"><span class="skill-badge badge-vetting">Red Flags</span><span style="font-size:12px;color:var(--ink-faint);">Watch for these during screening</span></div>' +
+    redFlagItems + '</div></div>' +
+
+    // TAB: TALENT INTELLIGENCE
+    '<div class="tab-content" id="tab-talent">' +
+    '<div class="ti-section">' +
+    '<div class="ti-section-label">Boolean Search Strings</div>' +
+    '<div class="ti-section-sub">Ready to paste into LinkedIn Recruiter, GitHub, or Google</div>' +
+    boolRows +
+    '</div>' +
+    '<div class="ti-section">' +
+    '<div class="ti-section-label">Where This Talent Hangs Out</div>' +
+    '<div class="ti-section-sub">Communities, newsletters, Slack groups, and forums</div>' +
+    '<div class="keyword-tags" style="margin-top:10px;">' + poolTags + '</div>' +
+    '</div>' +
+    '<div class="ti-section">' +
+    '<div class="ti-section-label">Target Companies to Poach From</div>' +
+    '<div class="ti-section-sub">Specific companies with people who have the right profile</div>' +
+    '<div class="company-grid">' + companyCards + '</div>' +
+    '</div>' +
+    '<div class="ti-section">' +
+    '<div class="ti-section-label">Conferences & Events</div>' +
+    '<div class="ti-section-sub">Where to find and meet this talent in person</div>' +
+    '<div class="keyword-tags" style="margin-top:10px;">' + confTags + '</div>' +
+    '</div>' +
+    '<div class="ti-section">' +
+    '<div class="ti-section-label">Hiring Signals to Watch</div>' +
+    '<div class="ti-section-sub">Triggers that suggest someone may be open to a move</div>' +
+    '<div style="margin-top:10px;">' + signalItems + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    // TAB: PHONE SCREEN
+    '<div class="tab-content" id="tab-screen">' +
+    '<div style="font-size:12px;color:var(--ink-faint);margin-bottom:20px;font-family:DM Mono,monospace;">Use these on the 20-min recruiter screen. Each question has a clear intent and tells you what good vs weak looks like.</div>' +
+    screenRows +
+    '</div>' +
+
+    // TAB: SCORECARD
+    '<div class="tab-content" id="tab-scorecard">' +
+    '<div style="font-size:12px;color:var(--ink-faint);margin-bottom:16px;font-family:DM Mono,monospace;">Score each criterion 1-5. Weight = how heavily to factor in your decision.</div>' +
+    scorecardRows + '</div>' +
+
+    // TAB: INTERVIEW Qs
+    '<div class="tab-content" id="tab-interviews">' +
+    '<div style="font-size:12px;color:var(--ink-faint);margin-bottom:16px;">Structured probes for the hiring manager interview. Follow-up for shallow answers.</div>' +
+    iqRows + '</div>' +
+
+    // TAB: MARKET INTEL
+    '<div class="tab-content" id="tab-market">' +
+    '<div style="font-size:12px;color:var(--ink-faint);margin-bottom:20px;font-family:DM Mono,monospace;">Market benchmarks and title variants. Use to set HM expectations and calibrate your search.</div>' +
+    marketIntelHtml +
+    '</div>' +
+
+    '</div>';
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function resetTool() {
+  document.getElementById('stage-output').style.display = 'none';
+  document.getElementById('stage-intake').style.display = 'block';
+  document.getElementById('dot-1').className = 'stage-dot active';
+  document.getElementById('dot-2').className = 'stage-dot';
+  document.getElementById('dot-3').className = 'stage-dot';
+  document.querySelectorAll('input[type="text"], textarea').forEach(el => el.value = '');
+  document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(el => el.checked = false);
+  document.getElementById('intake-progress').style.width = '0%';
+  window.scrollTo(0,0);
+}
+
+// ── HISTORY ──────────────────────────────────────────────────────────────────
+const HISTORY_KEY = 'skillmatrix_history';
+
+const storage = {
+  async get(key) {
+    if (typeof window !== 'undefined' && window.storage && window.storage.get) {
+      try { const r = await window.storage.get(key); return r ? r.value : null; } catch(e) { return null; }
+    }
+    try { return localStorage.getItem(key); } catch(e) { return null; }
+  },
+  async set(key, value) {
+    if (typeof window !== 'undefined' && window.storage && window.storage.set) {
+      try { await window.storage.set(key, value); return; } catch(e) {}
+    }
+    try { localStorage.setItem(key, value); } catch(e) {}
+  },
+  async remove(key) {
+    if (typeof window !== 'undefined' && window.storage && window.storage.delete) {
+      try { await window.storage.delete(key); return; } catch(e) {}
+    }
+    try { localStorage.removeItem(key); } catch(e) {}
+  }
+};
+
+async function loadHistory() {
+  try { const r = await storage.get(HISTORY_KEY + '_index'); return r ? JSON.parse(r) : []; }
+  catch(e) { return []; }
+}
+
+async function loadEntryData(id) {
+  try { const r = await storage.get(HISTORY_KEY + '_entry_' + id); return r ? JSON.parse(r) : null; }
+  catch(e) { return null; }
+}
+
+async function saveToHistory(matrixData, intakeData) {
+  try {
+    const index = await loadHistory();
+    const id = 'sm_' + Date.now();
+    await storage.set(HISTORY_KEY + '_entry_' + id, JSON.stringify({ matrixData, intakeData }));
+    index.unshift({ id, savedAt: new Date().toISOString(), roleTitle: matrixData.roleTitle || intakeData.role, seniority: intakeData.seniority || '', stage: intakeData.stage || '' });
+    if (index.length > 50) {
+      const removed = index.splice(50);
+      for (const old of removed) await storage.remove(HISTORY_KEY + '_entry_' + old.id);
+    }
+    await storage.set(HISTORY_KEY + '_index', JSON.stringify(index));
+    renderHistoryBar(index);
+    showToast('Matrix saved ✓');
+  } catch(e) { console.error('Save failed:', e); }
+}
+
+async function deleteFromHistory(id) {
+  try {
+    const index = await loadHistory();
+    const updated = index.filter(e => e.id !== id);
+    await storage.remove(HISTORY_KEY + '_entry_' + id);
+    await storage.set(HISTORY_KEY + '_index', JSON.stringify(updated));
+    renderHistoryBar(updated);
+  } catch(e) { console.error('Delete failed:', e); }
+}
+
+function renderHistoryBar(history) {
+  const countEl = document.getElementById('history-count');
+  const listEl = document.getElementById('history-list');
+  if (!countEl || !listEl) return;
+  countEl.textContent = history.length;
+  if (history.length === 0) {
+    listEl.innerHTML = '<div class="history-empty">No saved matrices yet. Generate your first one below.</div>';
+    return;
+  }
+  listEl.innerHTML = history.map(entry => {
+    const d = new Date(entry.savedAt);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const meta = [entry.seniority, entry.stage].filter(Boolean).join(' · ');
+    return '<div class="history-item">' +
+      '<div class="history-item-info">' +
+      '<div class="history-item-role">' + (entry.roleTitle || 'Untitled') + '</div>' +
+      '<div class="history-item-meta">' + dateStr + (meta ? ' · ' + meta : '') + '</div>' +
+      '</div>' +
+      '<div class="history-item-actions">' +
+      '<button class="history-load-btn" onclick="loadEntry(' + JSON.stringify(entry.id) + ')">Load</button>' +
+      '<button class="history-delete-btn" onclick="confirmDelete(' + JSON.stringify(entry.id) + ')">✕</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+async function loadEntry(id) {
+  try {
+    const data = await loadEntryData(id);
+    if (!data || !data.matrixData) { alert('Could not load — please regenerate this matrix.'); return; }
+    document.getElementById('stage-intake').style.display = 'none';
+    document.getElementById('stage-loading').style.display = 'none';
+    document.getElementById('stage-output').style.display = 'block';
+    document.getElementById('dot-1').className = 'stage-dot done';
+    document.getElementById('dot-2').className = 'stage-dot done';
+    document.getElementById('dot-3').className = 'stage-dot active';
+    renderOutput(data.matrixData, data.intakeData || {});
+    document.getElementById('stage-output').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) { alert('Error loading: ' + e.message); }
+}
+
+async function confirmDelete(id) {
+  const index = await loadHistory();
+  const entry = index.find(e => e.id === id);
+  if (confirm('Delete "' + (entry ? entry.roleTitle : 'this matrix') + '"?')) await deleteFromHistory(id);
+}
+
+function toggleHistory() {
+  const list = document.getElementById('history-list');
+  const btn = document.getElementById('history-toggle-btn');
+  list.classList.toggle('collapsed');
+  btn.textContent = list.classList.contains('collapsed') ? 'Show ▾' : 'Hide ▴';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('saved-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const history = await loadHistory();
+  renderHistoryBar(history);
+  if (history.length > 0) {
+    document.getElementById('history-list').classList.remove('collapsed');
+    document.getElementById('history-toggle-btn').textContent = 'Hide ▴';
+  }
+});
+
+</script>
+</body>
+</html>

@@ -977,26 +977,7 @@ const loadingMessages = [
 ];
 
 function buildPrompt(d) {
-  return [
-    "Generate a recruitment skill matrix as JSON. Return ONLY raw JSON, nothing else.",
-    "",
-    "JSON structure:",
-    "{ roleTitle, summary, mustHaveSkills: [{skill, category, proficiencyRequired, weight, why}], niceToHaveSkills: [{skill, category, proficiencyRequired, weight, why}], redFlags: [], talentInsights: {booleanStrings: [{platform, query}], talentPools: [], targetCompanies: [], conferenceAndEvents: [], hiringSignals: []}, marketIntel: {alternativeTitles: [{title, commonAt, notes}], salaryBenchmarks: [{level, locationContext, baseSalary, totalComp, source}], hiringMarketSummary}, scorecard: [{criterion, weight, description, scaleOne, scaleFive}], recruiterScreenQuestions: [{question, intent, greenFlag, redFlag}], interviewQuestions: [{skill, type, question, probeFollowUp}] }",
-    "",
-    "Rules: mustHaveSkills=5 items, niceToHaveSkills=3, redFlags=3, booleanStrings=3, talentPools=4, targetCompanies=5, conferenceAndEvents=3, hiringSignals=3, alternativeTitles=6, salaryBenchmarks=4, scorecard=4, recruiterScreenQuestions=4, interviewQuestions=4.",
-    "Keep all strings short. proficiencyRequired must be integer 1-5. weight must be High/Medium/Low.",
-    "",
-    "ROLE: " + d.role,
-    "PROBLEM: " + d.problem,
-    "SENIORITY: " + (d.seniority || "Senior"),
-    "STAGE: " + (d.stage || "Series A"),
-    "90 DAYS: " + (d.success90 || ""),
-    "STACK: " + (d.tools || ""),
-    "TRAITS: " + (d.traits || ""),
-    "DEALBREAKERS: " + (d.dealbreakers || ""),
-    "",
-    "Return only the JSON object."
-  ].join("\n");
+  return "Generate a recruitment skill matrix as a JSON object. Return ONLY raw JSON, no markdown, no explanation.\n\nJSON structure (keep all values SHORT):\n{\n  \"roleTitle\": \"string\",\n  \"summary\": \"string\",\n  \"mustHaveSkills\": [{\"skill\":\"\",\"category\":\"Technical\",\"proficiencyRequired\":4,\"weight\":\"High\",\"why\":\"\"}],\n  \"niceToHaveSkills\": [{\"skill\":\"\",\"category\":\"Domain\",\"proficiencyRequired\":3,\"weight\":\"Medium\",\"why\":\"\"}],\n  \"redFlags\": [\"string\"],\n  \"talentInsights\": {\"booleanStrings\":[{\"platform\":\"LinkedIn\",\"query\":\"\"}],\"talentPools\":[\"\"],\"targetCompanies\":[\"\"],\"conferenceAndEvents\":[\"\"],\"hiringSignals\":[\"\"]},\n  \"marketIntel\": {\"alternativeTitles\":[{\"title\":\"\",\"commonAt\":\"\",\"notes\":\"\"}],\"salaryBenchmarks\":[{\"level\":\"\",\"locationContext\":\"\",\"baseSalary\":\"\",\"totalComp\":\"\",\"source\":\"levels.fyi estimate\"}],\"hiringMarketSummary\":\"\"},\n  \"scorecard\": [{\"criterion\":\"\",\"weight\":\"High\",\"description\":\"\",\"scaleOne\":\"\",\"scaleFive\":\"\"}],\n  \"recruiterScreenQuestions\": [{\"question\":\"\",\"intent\":\"\",\"greenFlag\":\"\",\"redFlag\":\"\"}],\n  \"interviewQuestions\": [{\"skill\":\"\",\"type\":\"Behavioral\",\"question\":\"\",\"probeFollowUp\":\"\"}]\n}\n\nCounts: mustHaveSkills=4, niceToHaveSkills=2, redFlags=3, booleanStrings=2, talentPools=3, targetCompanies=4, conferenceAndEvents=2, hiringSignals=2, alternativeTitles=4, salaryBenchmarks=3, scorecard=3, recruiterScreenQuestions=3, interviewQuestions=3.\n\nROLE: " + d.role + "\nPROBLEM: " + d.problem + "\nSENIORITY: " + (d.seniority || "Senior IC") + "\nSTAGE: " + (d.stage || "Series A") + "\nSTACK: " + (d.tools || "not specified") + "\nTRAITS: " + (d.traits || "ownership, speed") + "\n\nReturn only the JSON object.";
 }
 
 
@@ -1027,7 +1008,7 @@ async function generateMatrix() {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
+        max_tokens: 1500,
         system: 'You are a recruitment specialist. Output ONLY raw valid JSON — no markdown, no backticks, no explanation. Start your response with { and end with }.',
         messages: [{ role: 'user', content: buildPrompt(data) }]
       })
